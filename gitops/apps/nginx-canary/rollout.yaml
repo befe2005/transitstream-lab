@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: nginx-canary
+  namespace: transitstream
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+
+  selector:
+    matchLabels:
+      app: nginx-canary
+
+  template:
+    metadata:
+      labels:
+        app: nginx-canary
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.29-alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+  strategy:
+    canary:
+      maxSurge: 1
+      maxUnavailable: 0
+      steps:
+        - setWeight: 33
+        - pause: {}
+        - setWeight: 67
+        - pause: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-canary-service
+  namespace: transitstream
+spec:
+  selector:
+    app: nginx-canary
+  ports:
+    - port: 80
+      targetPort: 80
