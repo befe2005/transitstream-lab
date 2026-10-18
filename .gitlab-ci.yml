@@ -2,6 +2,7 @@ stages:
   - validate
   - test
   - build
+  - update-gitops
 
 python-syntax:
   stage: validate
@@ -50,3 +51,61 @@ build-consumer:
   variables:
     BUILD_CONTEXT: apps/consumer
     IMAGE_NAME: consumer
+
+update-gitops:
+  stage: update-gitops
+  image: alpine:3.20
+
+  needs:
+    - build-producer
+    - build-consumer
+
+  before_script:
+    - apk add --no-cache git python3
+    - git config user.name "TransitStream CI Bot"
+    - git config user.email "transitstream-ci@example.invalid"
+
+  script:
+    - |
+      python3 - <<'PY'
+      import os
+      from pathlib import Path
+
+      path = Path("gitops/apps/transitstream/deployments.yaml")
+      content = path.read_text()
+
+      registry = os.environ["CI_REGISTRY_IMAGE"]
+      tag = os.environ["CI_COMMIT_SHORT_SHA"]
+
+      for name in ("producer", "consumer"):
+          import re
+          pattern = rf"({re.escape(registry)}/{name}:)[^\s]+"
+          content, count = re.subn(
+              pattern,
+              lambda match: match.group(1) + tag,
+              content,
+          )
+          if count != 1:
+              raise SystemExit(
+                  f"Expected exactly one image reference for {name}, found {count}"
+              )
+
+      path.write_text(content)
+      print(f"Updated GitOps images to tag {tag}")
+      PY
+
+    - git add gitops/apps/transitstream/deployments.yaml
+    - |
+      if git diff --cached --quiet; then
+        echo "No GitOps changes required"
+        exit 0
+      fi
+
+    - git commit -m "ci: deploy images ${CI_COMMIT_SHORT_SHA} [skip ci]"
+    - |
+      git push \
+        "https://oauth2:${GITOPS_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" \
+        "HEAD:main"
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
