@@ -16,5 +16,9 @@ spec:
     namespace: transitstream
 
   syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: true
     syncOptions:
       - CreateNamespace=false
