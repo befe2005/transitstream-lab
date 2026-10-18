@@ -20,6 +20,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9113"
         prometheus.io/path: "/metrics"
+        lab.transitstream.io/analysis-test: "1" 
 
     spec:
       terminationGracePeriodSeconds: 30
