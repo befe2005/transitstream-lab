@@ -1,0 +1,18 @@
+stages:
+  - validate
+  - test
+
+default:
+  image: python:3.12-slim
+
+python-syntax:
+  stage: validate
+  script:
+    - python -m compileall -q apps/producer apps/consumer
+    - echo "Python syntax validation passed"
+
+python-imports:
+  stage: test
+  script:
+    - python -m pip install --no-cache-dir kafka-python==2.2.15
+    - python -c "import kafka; print('Kafka Python client imported successfully')"
