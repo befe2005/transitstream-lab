@@ -1,18 +1,52 @@
 stages:
   - validate
   - test
-
-default:
-  image: python:3.12-slim
+  - build
 
 python-syntax:
   stage: validate
+  image: python:3.12-slim
   script:
     - python -m compileall -q apps/producer apps/consumer
-    - echo "Python syntax validation passed"
 
 python-imports:
   stage: test
+  image: python:3.12-slim
   script:
-    - python -m pip install --no-cache-dir kafka-python==2.2.15
-    - python -c "import kafka; print('Kafka Python client imported successfully')"
+    - python -m pip install --no-cache-dir kafka-python==2.2.15 prometheus-client==0.22.1
+    - python -c "import kafka, prometheus_client; print('Dependencies imported successfully')"
+
+.build-image:
+  stage: build
+  image:
+    name: moby/buildkit:rootless
+    entrypoint: [""]
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  before_script:
+    - mkdir -p ~/.docker
+    - |
+      printf '{"auths":{"%s":{"username":"%s","password":"%s"}}}' \
+        "$CI_REGISTRY" "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" \
+        > ~/.docker/config.json
+  script:
+    - |
+      buildctl-daemonless.sh build \
+        --frontend dockerfile.v0 \
+        --local context="$BUILD_CONTEXT" \
+        --local dockerfile="$BUILD_CONTEXT" \
+        --output "type=image,name=$CI_REGISTRY_IMAGE/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA,push=true"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+build-producer:
+  extends: .build-image
+  variables:
+    BUILD_CONTEXT: apps/producer
+    IMAGE_NAME: producer
+
+build-consumer:
+  extends: .build-image
+  variables:
+    BUILD_CONTEXT: apps/consumer
+    IMAGE_NAME: consumer
