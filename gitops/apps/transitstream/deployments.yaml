@@ -34,7 +34,7 @@ spec:
 
       containers:
         - name: producer
-          image: registry.gitlab.com/befe2005/transitstream-lab/producer:acb9615
+          image: registry.gitlab.com/befe2005/transitstream-lab/producer:f040bb99
           imagePullPolicy: IfNotPresent
 
           env:
@@ -96,7 +96,7 @@ spec:
 
       containers:
         - name: consumer
-          image: registry.gitlab.com/befe2005/transitstream-lab/consumer:acb9615
+          image: registry.gitlab.com/befe2005/transitstream-lab/consumer:f040bb99
           imagePullPolicy: IfNotPresent
 
           env:
