@@ -38,8 +38,9 @@ spec:
             httpGet:
               path: /
               port: http
-            initialDelaySeconds: 2
             periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
 
           livenessProbe:
             httpGet:
@@ -47,6 +48,8 @@ spec:
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
 
           volumeMounts:
             - name: nginx-config
@@ -78,8 +81,9 @@ spec:
             httpGet:
               path: /metrics
               port: metrics
-            initialDelaySeconds: 3
             periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
 
           resources:
             requests:
@@ -98,7 +102,6 @@ spec:
     canary:
       maxSurge: 1
       maxUnavailable: 0
-
       steps:
         - setWeight: 33
         - pause: {}
