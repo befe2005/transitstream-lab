@@ -3,20 +3,40 @@ kind: Deployment
 metadata:
   name: bus-producer
   namespace: transitstream
+  labels:
+    app: bus-producer
+    app.kubernetes.io/part-of: transitstream
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
   selector:
     matchLabels:
       app: bus-producer
+
   template:
     metadata:
       labels:
         app: bus-producer
+        app.kubernetes.io/part-of: transitstream
+
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry
+
+      terminationGracePeriodSeconds: 30
+
       containers:
         - name: producer
           image: registry.gitlab.com/befe2005/transitstream-lab/producer:acb9615
           imagePullPolicy: IfNotPresent
+
           env:
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: "kafka:9092"
@@ -24,6 +44,7 @@ spec:
               value: "bus.telemetry.raw"
             - name: PUBLISH_INTERVAL
               value: "2"
+
           resources:
             requests:
               cpu: 50m
@@ -31,26 +52,53 @@ spec:
             limits:
               cpu: 250m
               memory: 256Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bus-consumer
   namespace: transitstream
+  labels:
+    app: bus-consumer
+    app.kubernetes.io/part-of: transitstream
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
   selector:
     matchLabels:
       app: bus-consumer
+
   template:
     metadata:
       labels:
         app: bus-consumer
+        app.kubernetes.io/part-of: transitstream
+
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry
+
+      terminationGracePeriodSeconds: 60
+
       containers:
         - name: consumer
           image: registry.gitlab.com/befe2005/transitstream-lab/consumer:acb9615
           imagePullPolicy: IfNotPresent
+
           env:
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: "kafka:9092"
@@ -58,6 +106,7 @@ spec:
               value: "bus.telemetry.raw"
             - name: KAFKA_GROUP_ID
               value: "transitstream-processors"
+
           resources:
             requests:
               cpu: 50m
@@ -65,3 +114,9 @@ spec:
             limits:
               cpu: 250m
               memory: 256Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
