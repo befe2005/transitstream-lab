@@ -1,3 +1,4 @@
+
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
@@ -15,12 +16,44 @@ spec:
     metadata:
       labels:
         app: nginx-canary
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9113"
+        prometheus.io/path: "/metrics"
+
     spec:
+      terminationGracePeriodSeconds: 30
+
       containers:
         - name: nginx
           image: nginx:1.28-alpine
+          imagePullPolicy: IfNotPresent
+
           ports:
-            - containerPort: 80
+            - name: http
+              containerPort: 80
+              protocol: TCP
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              readOnly: true
+
           resources:
             requests:
               cpu: 25m
@@ -29,15 +62,49 @@ spec:
               cpu: 200m
               memory: 128Mi
 
+        - name: nginx-exporter
+          image: nginx/nginx-prometheus-exporter:1.4.2
+          imagePullPolicy: IfNotPresent
+
+          args:
+            - --nginx.scrape-uri=http://127.0.0.1/stub_status
+
+          ports:
+            - name: metrics
+              containerPort: 9113
+              protocol: TCP
+
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 3
+            periodSeconds: 10
+
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-canary-config
+
   strategy:
     canary:
       maxSurge: 1
       maxUnavailable: 0
+
       steps:
         - setWeight: 33
         - pause: {}
         - setWeight: 67
         - pause: {}
+
 ---
 apiVersion: v1
 kind: Service
@@ -45,8 +112,13 @@ metadata:
   name: nginx-canary-service
   namespace: transitstream
 spec:
+  type: ClusterIP
+
   selector:
     app: nginx-canary
+
   ports:
-    - port: 80
-      targetPort: 80
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
