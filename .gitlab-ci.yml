@@ -1,15 +1,22 @@
+
 stages:
   - validate
   - test
   - build
   - update-gitops
 
+# --------------------------------------------------
+# 1. Validate Python source code
+# --------------------------------------------------
 python-syntax:
   stage: validate
   image: python:3.12-slim
   script:
     - python -m compileall -q apps/producer apps/consumer
 
+# --------------------------------------------------
+# 2. Verify Python dependencies
+# --------------------------------------------------
 python-imports:
   stage: test
   image: python:3.12-slim
@@ -17,13 +24,16 @@ python-imports:
     - python -m pip install --no-cache-dir kafka-python==2.2.15 prometheus-client==0.22.1
     - python -c "import kafka, prometheus_client; print('Dependencies imported successfully')"
 
+# --------------------------------------------------
+# 3. Reusable rootless BuildKit image build
+# --------------------------------------------------
 .build-image:
   stage: build
   image:
     name: moby/buildkit:rootless
     entrypoint: [""]
   variables:
-    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+    BUILDKITD_FLAGS: "--oci-worker-no-process-sandbox"
   before_script:
     - mkdir -p ~/.docker
     - |
@@ -38,7 +48,7 @@ python-imports:
         --local dockerfile="$BUILD_CONTEXT" \
         --output "type=image,name=$CI_REGISTRY_IMAGE/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA,push=true"
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
 
 build-producer:
   extends: .build-image
@@ -52,13 +62,16 @@ build-consumer:
     BUILD_CONTEXT: apps/consumer
     IMAGE_NAME: consumer
 
+# --------------------------------------------------
+# 4. Update GitOps manifests after successful builds
+# --------------------------------------------------
 update-gitops:
   stage: update-gitops
   image: alpine:3.20
 
   needs:
-    - build-producer
-    - build-consumer
+    - job: build-producer
+    - job: build-consumer
 
   before_script:
     - apk add --no-cache git python3
@@ -67,8 +80,11 @@ update-gitops:
 
   script:
     - |
+      set -eu
+
       python3 - <<'PY'
       import os
+      import re
       from pathlib import Path
 
       path = Path("gitops/apps/transitstream/deployments.yaml")
@@ -78,34 +94,41 @@ update-gitops:
       tag = os.environ["CI_COMMIT_SHORT_SHA"]
 
       for name in ("producer", "consumer"):
-          import re
           pattern = rf"({re.escape(registry)}/{name}:)[^\s]+"
           content, count = re.subn(
               pattern,
               lambda match: match.group(1) + tag,
               content,
           )
+
           if count != 1:
               raise SystemExit(
                   f"Expected exactly one image reference for {name}, found {count}"
               )
 
       path.write_text(content)
-      print(f"Updated GitOps images to tag {tag}")
+      print(f"Updated producer and consumer image tags to {tag}")
       PY
 
-    - git add gitops/apps/transitstream/deployments.yaml
-    - |
+      git add gitops/apps/transitstream/deployments.yaml
+
       if git diff --cached --quiet; then
         echo "No GitOps changes required"
         exit 0
       fi
 
-    - git commit -m "ci: deploy images ${CI_COMMIT_SHORT_SHA} [skip ci]"
-    - |
-      git push \
-        "https://oauth2:${GITOPS_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" \
-        "HEAD:main"
+      git commit -m "ci: deploy images ${CI_COMMIT_SHORT_SHA} [skip ci]"
+
+      test -n "${GITOPS_PUSH_TOKEN:-}" || {
+        echo "ERROR: GITOPS_PUSH_TOKEN is unavailable"
+        exit 1
+      }
+
+      AUTH_HEADER="$(printf 'oauth2:%s' "$GITOPS_PUSH_TOKEN" | base64 | tr -d '\n')"
+
+      git -c "http.extraHeader=Authorization: Basic ${AUTH_HEADER}" \
+        push "https://${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" \
+        HEAD:main
 
   rules:
     - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
