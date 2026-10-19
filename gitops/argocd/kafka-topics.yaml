@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-topics
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://gitlab.com/befe2005/transitstream-lab.git
+    targetRevision: main
+    path: gitops/apps/kafka-topics
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: transitstream
+
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
