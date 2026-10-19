@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+BOOTSTRAP="kafka.transitstream.svc.cluster.local:9092"
+KAFKA_TOPICS="/opt/kafka/bin/kafka-topics.sh"
+KAFKA_CONFIGS="/opt/kafka/bin/kafka-configs.sh"
+
+echo "Starting Kafka topic provisioning..."
+
+# Create processed topic if it does not exist
+$KAFKA_TOPICS \
+  --bootstrap-server "$BOOTSTRAP" \
+  --create \
+  --if-not-exists \
+  --topic bus.telemetry.processed \
+  --partitions 3 \
+  --replication-factor 1 \
+  --config retention.ms=604800000
+
+echo "Kafka topic provisioning completed."

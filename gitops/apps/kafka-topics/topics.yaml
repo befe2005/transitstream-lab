@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-topic-definitions
+  namespace: transitstream
+data:
+  topics.yaml: |
+    topics:
+      - name: bus.telemetry.raw
+        partitions: 3
+        replication_factor: 1
+        config:
+          retention.ms: "604800000"
+      - name: bus.telemetry.processed
+        partitions: 3
+        replication_factor: 1
+        config:
+          retention.ms: "604800000"

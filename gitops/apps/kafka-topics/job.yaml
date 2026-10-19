@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-topic-provisioner-v1
+  namespace: transitstream
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: provisioner
+          image: apache/kafka:4.2.2
+          command:
+            - /bin/sh
+            - /scripts/provision.sh
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: kafka-topic-provisioner-script
+            defaultMode: 0755
