@@ -14,6 +14,7 @@ Kafka-based bus telemetry streaming lab on Kubernetes, deployed with Argo CD.
 | `gitops/apps/kafka-topics/` | Self-service topics, one folder per team ([how to request a topic](gitops/apps/kafka-topics/README.md)) |
 | `gitops/platform/policies/` | Kyverno policies that every topic must pass |
 | `scripts/` | Repository checks used by CI |
+| `docs/access-control.md` | [Who can change what](docs/access-control.md): GitHub ownership, CI checks, Argo CD RBAC, known gaps |
 
 ## CI/CD (GitHub Actions)
 
