@@ -11,7 +11,7 @@ metadata:
     tier: standard
 spec:
   topicName: ticketing.bus.process
-  partitions: 50
+  partitions: 10
   replicas: 1
   config:
     retention.ms: 86400000
