@@ -79,8 +79,12 @@ for team_dir in team_dirs:
         if metadata.get("namespace") != NAMESPACE:
             error(path, f"metadata.namespace must be '{NAMESPACE}'")
 
-        if topic and path.stem != metadata.get("name"):
-            error(path, f"file name must be '{metadata.get('name')}.yaml' to match metadata.name")
+        # topicName is the source of truth; the resource and file names derive from it.
+        if topic:
+            expected = str(topic).replace(".", "-")
+            if metadata.get("name") != expected or path.stem != expected:
+                error(path, f"metadata.name and file name must both be '{expected}' (topicName '{topic}' "
+                            f"with dots as dashes), found name '{metadata.get('name')}' in '{path.name}'")
 
         if topic in seen_topics:
             error(path, f"topic '{topic}' is already defined in {seen_topics[topic]}")

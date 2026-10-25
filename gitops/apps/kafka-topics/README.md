@@ -43,6 +43,22 @@ topics by hand.
 
 Need something outside these limits, or a new team/domain? Ask the platform team.
 
+## Approvals
+
+Every pull request needs the **Topic validation** and **Topic risk** checks to pass
+and an approval from your team (CODEOWNERS). The risk check compares your change
+with `main`:
+
+| Change | Risk | Approval |
+| --- | --- | --- |
+| New topic, retention increase, owner/label change | low | your team |
+| Delete or rename a topic, lower retention, more partitions, change replicas, `cleanup.policy`, `data-classification` or team, any change to a `tier: critical` topic | high | your team **and** a platform engineer, on the latest commit |
+| Fewer partitions | blocked | not possible in Kafka |
+
+More partitions is high risk because Kafka assigns messages to partitions by key
+(for example bus ID): adding partitions changes that mapping, so events for one
+bus can briefly arrive out of order.
+
 ## Run the checks locally
 
 ```sh

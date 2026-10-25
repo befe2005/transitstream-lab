@@ -1,0 +1,17 @@
+# Who must approve changes, per path. The LAST matching line wins.
+# In a GitHub organization, replace usernames with teams, e.g. @transitstream/platform.
+
+# Default: everything is owned by the platform team.
+*                                                 @befe2005
+
+# Self-service topics: each team approves its own folder.
+/gitops/apps/kafka-topics/teams/fleet-tracking/   @befe2005
+/gitops/apps/kafka-topics/teams/ticketing/        @befe2005
+
+# Guardrails: only the platform team may change policies, team onboarding,
+# validation logic, CI and this file. scripts/topic_risk.py reads the owners
+# of /gitops/platform/ as the list of platform engineers.
+/gitops/apps/kafka-topics/kustomization.yaml      @befe2005
+/gitops/platform/                                 @befe2005
+/scripts/                                         @befe2005
+/.github/                                         @befe2005

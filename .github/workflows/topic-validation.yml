@@ -1,12 +1,9 @@
 name: Topic validation
 
+# Runs on every pull request (not filtered by path) because it is a required
+# check: a required check that never starts would block unrelated PRs forever.
 on:
   pull_request:
-    paths:
-      - gitops/apps/kafka-topics/**
-      - gitops/platform/policies/kafka-topics/**
-      - scripts/validate_topics.py
-      - .github/workflows/topic-validation.yml
   push:
     branches: [main]
     paths:
@@ -43,23 +40,33 @@ jobs:
           sudo tar -xzf kyverno.tar.gz -C /usr/local/bin kyverno
           kyverno version
 
+      # Every check below runs even if an earlier one failed, so developers see
+      # all problems in a single run. The job still fails if any step failed.
+
       # 1. Policies are code: prove they reject bad topics and accept good ones.
       - name: Test policies
+        if: ${{ !cancelled() }}
         run: kyverno test "$POLICIES_DIR/tests"
 
       # 2. Checks Kyverno cannot do: folder ownership, listing, uniqueness.
       - name: Repository checks
+        if: ${{ !cancelled() }}
         run: python scripts/validate_topics.py "$TOPICS_DIR"
 
-      # 3. Render exactly what Argo CD will deploy.
+      # 3. Make sure Argo CD can render the folder.
       - name: Render manifests
-        run: kubectl kustomize "$TOPICS_DIR" > rendered.yaml
+        if: ${{ !cancelled() }}
+        run: kubectl kustomize "$TOPICS_DIR" > /dev/null
 
-      # 4. Validate every rendered topic against the policies.
+      # 4. Validate every topic file against the policies, including files that
+      #    are not (yet) listed in a kustomization.
       - name: Validate topics against policies
+        if: ${{ !cancelled() }}
         run: |
           set -o pipefail
-          kyverno apply "$POLICIES_DIR"/*.yaml --resource rendered.yaml | tee kyverno.out
+          mapfile -t files < <(find "$TOPICS_DIR/teams" -name '*.yaml' ! -name kustomization.yaml | sort)
+          args=(); for f in "${files[@]}"; do args+=(--resource "$f"); done
+          kyverno apply "$POLICIES_DIR"/*.yaml "${args[@]}" | tee kyverno.out
 
           # Guard against a silent pass (no rules evaluated) or policy errors.
           grep -q "^pass: [1-9]" kyverno.out || { echo "::error::No policy rules were evaluated"; exit 1; }
