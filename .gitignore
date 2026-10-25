@@ -1,4 +1,3 @@
-cat > .gitignore <<'EOF'
 # Python
 __pycache__/
 *.pyc
@@ -25,4 +24,7 @@ venv/
 .terraform/
 *.tfstate
 *.tfstate.*
-EOF
+
+# Local binaries
+kubectl
+kubectl.sha256

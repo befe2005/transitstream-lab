@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  # --------------------------------------------------
+  # 1. Validate Python source code
+  # --------------------------------------------------
+  python-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m compileall -q apps/producer apps/consumer
+
+  # --------------------------------------------------
+  # 2. Verify Python dependencies
+  # --------------------------------------------------
+  python-imports:
+    runs-on: ubuntu-latest
+    needs: python-syntax
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --no-cache-dir kafka-python==2.2.15 prometheus-client==0.22.1
+      - run: python -c "import kafka, prometheus_client; print('Dependencies imported successfully')"
+
+  # --------------------------------------------------
+  # 3. Build and push images to GHCR
+  # --------------------------------------------------
+  build:
+    runs-on: ubuntu-latest
+    needs: python-imports
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        image: [producer, consumer]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::8}" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: apps/${{ matrix.image }}
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ env.SHORT_SHA }}
+
+  # --------------------------------------------------
+  # 4. Update GitOps manifests after successful builds
+  # --------------------------------------------------
+  update-gitops:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    concurrency:
+      group: update-gitops
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Update image tags
+        env:
+          IMAGE_PREFIX: ${{ env.IMAGE_PREFIX }}
+        run: |
+          set -eu
+          export SHORT_SHA="${GITHUB_SHA::8}"
+
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("gitops/apps/transitstream/deployments.yaml")
+          content = path.read_text()
+
+          registry = os.environ["IMAGE_PREFIX"].lower()
+          tag = os.environ["SHORT_SHA"]
+
+          for name in ("producer", "consumer"):
+              pattern = rf"({re.escape(registry)}/{name}:)[^\s]+"
+              content, count = re.subn(
+                  pattern,
+                  lambda match: match.group(1) + tag,
+                  content,
+              )
+
+              if count != 1:
+                  raise SystemExit(
+                      f"Expected exactly one image reference for {name}, found {count}"
+                  )
+
+          path.write_text(content)
+          print(f"Updated producer and consumer image tags to {tag}")
+          PY
+
+      - name: Commit and push
+        run: |
+          set -eu
+          git config user.name "TransitStream CI Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add gitops/apps/transitstream/deployments.yaml
+
+          if git diff --cached --quiet; then
+            echo "No GitOps changes required"
+            exit 0
+          fi
+
+          git commit -m "ci: deploy images ${GITHUB_SHA::8} [skip ci]"
+          git push origin HEAD:main

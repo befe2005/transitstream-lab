@@ -7,7 +7,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://gitlab.com/befe2005/transitstream-lab.git
+    repoURL: https://github.com/befe2005/transitstream-lab.git
     targetRevision: main
     path: gitops/apps/nginx-canary
 

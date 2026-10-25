@@ -28,13 +28,13 @@ spec:
 
     spec:
       imagePullSecrets:
-        - name: gitlab-registry
+        - name: ghcr-registry
 
       terminationGracePeriodSeconds: 30
 
       containers:
         - name: producer
-          image: registry.gitlab.com/befe2005/transitstream-lab/producer:cf2867f5
+          image: ghcr.io/befe2005/transitstream-lab/producer:cf2867f5
           imagePullPolicy: IfNotPresent
 
           env:
@@ -90,13 +90,13 @@ spec:
 
     spec:
       imagePullSecrets:
-        - name: gitlab-registry
+        - name: ghcr-registry
 
       terminationGracePeriodSeconds: 60
 
       containers:
         - name: consumer
-          image: registry.gitlab.com/befe2005/transitstream-lab/consumer:cf2867f5
+          image: ghcr.io/befe2005/transitstream-lab/consumer:cf2867f5
           imagePullPolicy: IfNotPresent
 
           env:
