@@ -1,7 +1,7 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ticketing-validations-raw
+  name: ticketing-bus-process
   namespace: transitstream
   labels:
     strimzi.io/cluster: transitstream
@@ -10,7 +10,7 @@ metadata:
     data-classification: personal
     tier: standard
 spec:
-  topicName: ticketing.bus.process
+  topicName: ticketing-bus-process
   partitions: 50
   replicas: 1
   config:
