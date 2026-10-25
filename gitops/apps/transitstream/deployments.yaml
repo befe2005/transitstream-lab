@@ -34,7 +34,7 @@ spec:
 
       containers:
         - name: producer
-          image: ghcr.io/befe2005/transitstream-lab/producer:545013cf
+          image: ghcr.io/befe2005/transitstream-lab/producer:dc0e3fea
           imagePullPolicy: IfNotPresent
 
           env:
@@ -96,7 +96,7 @@ spec:
 
       containers:
         - name: consumer
-          image: ghcr.io/befe2005/transitstream-lab/consumer:545013cf
+          image: ghcr.io/befe2005/transitstream-lab/consumer:dc0e3fea
           imagePullPolicy: IfNotPresent
 
           env:
