@@ -1,0 +1,50 @@
+# One Argo CD Application per team folder under gitops/apps/kafka-topics/teams/.
+# Onboarding a team = adding its folder (platform-approved via CODEOWNERS);
+# the Application appears automatically.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kafka-topics-teams
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/befe2005/transitstream-lab.git
+        revision: main
+        directories:
+          - path: gitops/apps/kafka-topics/teams/*
+
+  # Never delete Applications or topics because a folder disappeared from Git.
+  syncPolicy:
+    applicationsSync: create-update
+    preserveResourcesOnDeletion: true
+
+  template:
+    metadata:
+      name: "kafka-topics-{{ .path.basename }}"
+      labels:
+        app.kubernetes.io/part-of: kafka-topics
+        team: "{{ .path.basename }}"
+    spec:
+      project: kafka-topics
+      source:
+        repoURL: https://github.com/befe2005/transitstream-lab.git
+        targetRevision: main
+        path: "{{ .path.path }}"
+        kustomize:
+          # Argo CD never deletes a topic, even when pruning: deleting a topic
+          # destroys its data and is a manual platform task.
+          commonAnnotations:
+            argocd.argoproj.io/sync-options: Delete=false
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: transitstream
+      syncPolicy:
+        automated:
+          enabled: true
+          prune: false
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false

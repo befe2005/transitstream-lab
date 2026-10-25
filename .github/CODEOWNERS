@@ -8,10 +8,12 @@
 /gitops/apps/kafka-topics/teams/fleet-tracking/   @befe2005
 /gitops/apps/kafka-topics/teams/ticketing/        @befe2005
 
-# Guardrails: only the platform team may change policies, team onboarding,
-# validation logic, CI and this file. scripts/topic_risk.py reads the owners
-# of /gitops/platform/ as the list of platform engineers.
-/gitops/apps/kafka-topics/kustomization.yaml      @befe2005
+# Guardrails: only the platform team may change policies (incl. team
+# onboarding), Argo CD config, validation logic, CI and this file.
+# scripts/topic_risk.py reads the owners of /gitops/platform/ as the list of
+# platform engineers. New team folders match only "*" above, so onboarding a
+# team also needs platform approval.
+/gitops/argocd/                                   @befe2005
 /gitops/platform/                                 @befe2005
 /scripts/                                         @befe2005
 /.github/                                         @befe2005

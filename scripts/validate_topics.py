@@ -31,12 +31,8 @@ def load_kustomization(directory: Path) -> list[str]:
     return data.get("resources") or []
 
 
-# Every team folder must be listed in the root kustomization.
-root_resources = set(load_kustomization(TOPICS_ROOT))
+# Each team folder becomes its own Argo CD Application (ApplicationSet).
 team_dirs = sorted(p for p in TEAMS_DIR.iterdir() if p.is_dir())
-for team_dir in team_dirs:
-    if f"teams/{team_dir.name}" not in root_resources:
-        error(TOPICS_ROOT / "kustomization.yaml", f"teams/{team_dir.name} is not listed in resources")
 
 seen_topics: dict[str, Path] = {}
 

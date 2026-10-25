@@ -42,6 +42,9 @@ topics by hand.
 | Configs allowed | `retention.ms`, `cleanup.policy`, `min.insync.replicas`, `max.message.bytes` (≤ 1 MiB), `compression.type` |
 
 Need something outside these limits, or a new team/domain? Ask the platform team.
+Onboarding a team means adding its folder and adding it to the `teamDomains` map in
+`gitops/platform/policies/kafka-topics/02-naming.yaml`; Argo CD creates the team's
+Application (`kafka-topics-<team>`) automatically.
 
 ## Approvals
 
@@ -63,8 +66,7 @@ bus can briefly arrive out of order.
 
 ```sh
 python3 scripts/validate_topics.py
-kubectl kustomize gitops/apps/kafka-topics > /tmp/rendered.yaml
-kyverno apply gitops/platform/policies/kafka-topics/*.yaml --resource /tmp/rendered.yaml
+kyverno apply gitops/platform/policies/kafka-topics/*.yaml --resource gitops/apps/kafka-topics/teams/<team>/<topic>.yaml
 ```
 
 Policies live in `gitops/platform/policies/kafka-topics/` and are owned by the platform team.

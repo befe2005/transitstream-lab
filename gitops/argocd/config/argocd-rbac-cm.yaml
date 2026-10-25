@@ -1,0 +1,34 @@
+# Argo CD RBAC. Deny by default; developers can only view their own team's
+# topic Application (changes go through Git), platform engineers manage everything.
+# With SSO, map GitHub teams instead of local users, e.g.
+#   g, transitstream:ticketing, role:team-ticketing
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  policy.default: ""
+  policy.csv: |
+    # Team roles: read-only, own Application only.
+    p, role:team-ticketing, applications, get, kafka-topics/kafka-topics-ticketing, allow
+    p, role:team-ticketing, projects, get, kafka-topics, allow
+    p, role:team-fleet-tracking, applications, get, kafka-topics/kafka-topics-fleet-tracking, allow
+    p, role:team-fleet-tracking, projects, get, kafka-topics, allow
+
+    # Platform engineers.
+    p, role:platform, applications, *, */*, allow
+    p, role:platform, applicationsets, *, */*, allow
+    p, role:platform, projects, *, *, allow
+    p, role:platform, repositories, get, *, allow
+    p, role:platform, clusters, get, *, allow
+    p, role:platform, logs, get, */*, allow
+    p, role:platform, exec, create, */*, deny
+
+    # Local lab users (replace with SSO groups).
+    g, ticketing-dev, role:team-ticketing
+    g, fleet-dev, role:team-fleet-tracking
+    g, platform-eng, role:platform
