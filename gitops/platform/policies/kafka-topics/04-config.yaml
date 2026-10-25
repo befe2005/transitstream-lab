@@ -1,0 +1,37 @@
+# Only a reviewed set of topic configs may be changed by teams; everything else
+# stays at the broker default. Retention is bounded, with a tighter cap for
+# topics carrying personal data (GDPR data minimisation).
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: kafka-topic-config
+spec:
+  validationActions: [Deny]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [kafka.strimzi.io]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [kafkatopics]
+  variables:
+    - name: allowedKeys
+      expression: "['retention.ms', 'cleanup.policy', 'min.insync.replicas', 'max.message.bytes', 'compression.type']"
+    - name: config
+      expression: "has(object.spec.config) ? object.spec.config : {}"
+    - name: retentionMs
+      expression: "'retention.ms' in variables.config ? int(variables.config['retention.ms']) : -1"
+    - name: personal
+      expression: "has(object.metadata.labels) && 'data-classification' in object.metadata.labels && object.metadata.labels['data-classification'] == 'personal'"
+    - name: hour
+      expression: "3600000"
+  validations:
+    - expression: "variables.config.all(k, k in variables.allowedKeys)"
+      messageExpression: "'Only these configs may be set: ' + variables.allowedKeys.join(', ') + '. Found: ' + variables.config.filter(k, !(k in variables.allowedKeys)).join(', ')"
+    - expression: "variables.retentionMs >= variables.hour && variables.retentionMs <= 7 * 24 * variables.hour"
+      message: "config retention.ms is required and must be between 3600000 (1 hour) and 604800000 (7 days)."
+    - expression: "!variables.personal || variables.retentionMs <= 3 * 24 * variables.hour"
+      message: "Topics with data-classification=personal may keep data for at most 3 days (retention.ms <= 259200000)."
+    - expression: "!('cleanup.policy' in variables.config) || string(variables.config['cleanup.policy']) in ['delete', 'compact', 'compact,delete']"
+      message: "config cleanup.policy must be delete, compact or compact,delete."
+    - expression: "!('max.message.bytes' in variables.config) || int(variables.config['max.message.bytes']) <= 1048576"
+      message: "config max.message.bytes may not exceed 1048576 (1 MiB)."

@@ -1,0 +1,27 @@
+# Every topic must say who owns it, what kind of data it carries and how
+# critical it is. Platform engineers rely on these labels for on-call routing,
+# GDPR reviews and change-risk decisions.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: kafka-topic-metadata
+spec:
+  validationActions: [Deny]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [kafka.strimzi.io]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [kafkatopics]
+  variables:
+    - name: labels
+      expression: "has(object.metadata.labels) ? object.metadata.labels : {}"
+  validations:
+    - expression: "['team', 'owner', 'data-classification', 'tier', 'strimzi.io/cluster'].all(l, l in variables.labels)"
+      message: "Labels team, owner, data-classification, tier and strimzi.io/cluster are required."
+    - expression: "!('data-classification' in variables.labels) || variables.labels['data-classification'] in ['public', 'internal', 'personal']"
+      message: "Label data-classification must be one of: public, internal, personal."
+    - expression: "!('tier' in variables.labels) || variables.labels['tier'] in ['critical', 'standard']"
+      message: "Label tier must be one of: critical, standard."
+    - expression: "has(object.spec.topicName) && object.metadata.name == object.spec.topicName.replace('.', '-')"
+      message: "spec.topicName is required and metadata.name must equal it with dots replaced by dashes (bus.telemetry.raw -> bus-telemetry-raw)."

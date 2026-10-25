@@ -1,0 +1,30 @@
+# Partition and replica limits. Partitions drive broker load and cannot be
+# reduced later, so keep requests small; more than 12 needs a platform exception.
+# Lab profile: a single broker, so replicas may be 1. Prod profile: replicas
+# must be 3 with min.insync.replicas=2.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: kafka-topic-sizing
+spec:
+  validationActions: [Deny]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [kafka.strimzi.io]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [kafkatopics]
+  variables:
+    - name: maxPartitions
+      expression: "12"
+    - name: minReplicas
+      expression: "1"   # prod: 3
+    - name: config
+      expression: "has(object.spec.config) ? object.spec.config : {}"
+  validations:
+    - expression: "has(object.spec.partitions) && object.spec.partitions >= 1 && object.spec.partitions <= variables.maxPartitions"
+      messageExpression: "'spec.partitions must be set between 1 and ' + string(variables.maxPartitions) + '.'"
+    - expression: "has(object.spec.replicas) && object.spec.replicas >= variables.minReplicas && object.spec.replicas <= 3"
+      messageExpression: "'spec.replicas must be set between ' + string(variables.minReplicas) + ' and 3.'"
+    - expression: "!has(object.spec.replicas) || object.spec.replicas < 3 || ('min.insync.replicas' in variables.config && int(variables.config['min.insync.replicas']) == 2)"
+      message: "Topics with 3 replicas must set config min.insync.replicas: 2 so a single broker failure loses no acknowledged data."

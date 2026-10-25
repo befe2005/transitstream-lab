@@ -5,6 +5,10 @@ metadata:
   namespace: transitstream
   labels:
     strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: befe2005
+    data-classification: internal
+    tier: standard
 spec:
   topicName: bus.telemetry.test
   partitions: 3

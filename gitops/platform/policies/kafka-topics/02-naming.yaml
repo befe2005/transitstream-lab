@@ -1,0 +1,33 @@
+# Topic names follow <domain>.<dataset>.<event>, and each team may only create
+# topics under the domains it owns. Onboarding a team = adding it to teamDomains
+# (platform-owned file, reviewed via CODEOWNERS).
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: kafka-topic-naming
+spec:
+  validationActions: [Deny]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [kafka.strimzi.io]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [kafkatopics]
+  variables:
+    - name: teamDomains
+      expression: |
+        {
+          'fleet-tracking': ['bus'],
+          'ticketing': ['ticketing']
+        }
+    - name: team
+      expression: "has(object.metadata.labels) && 'team' in object.metadata.labels ? object.metadata.labels['team'] : ''"
+    - name: topic
+      expression: "has(object.spec.topicName) ? object.spec.topicName : ''"
+  validations:
+    - expression: "variables.topic.matches('^[a-z][a-z0-9-]*\\\\.[a-z][a-z0-9-]*\\\\.[a-z][a-z0-9-]*$') && size(variables.topic) <= 100"
+      messageExpression: "'Topic name \"' + variables.topic + '\" must be <domain>.<dataset>.<event> in lowercase (e.g. bus.telemetry.raw), max 100 characters.'"
+    - expression: "variables.team in variables.teamDomains"
+      messageExpression: "'Team \"' + variables.team + '\" is not onboarded. Ask the platform team to add it to the kafka-topic-naming policy.'"
+    - expression: "!(variables.team in variables.teamDomains) || variables.teamDomains[variables.team].exists(d, variables.topic.startsWith(d + '.'))"
+      messageExpression: "'Team \"' + variables.team + '\" may only create topics under: ' + variables.teamDomains[variables.team].join(', ')"

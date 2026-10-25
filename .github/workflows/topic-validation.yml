@@ -1,0 +1,66 @@
+name: Topic validation
+
+on:
+  pull_request:
+    paths:
+      - gitops/apps/kafka-topics/**
+      - gitops/platform/policies/kafka-topics/**
+      - scripts/validate_topics.py
+      - .github/workflows/topic-validation.yml
+  push:
+    branches: [main]
+    paths:
+      - gitops/apps/kafka-topics/**
+      - gitops/platform/policies/kafka-topics/**
+      - scripts/validate_topics.py
+      - .github/workflows/topic-validation.yml
+
+permissions:
+  contents: read
+
+env:
+  KYVERNO_VERSION: v1.19.1
+  KYVERNO_SHA256: b38228f367fc0fdc2b08f4c83ea50ac5f16c60ff8d62d76a66157c33c47b70ae
+  TOPICS_DIR: gitops/apps/kafka-topics
+  POLICIES_DIR: gitops/platform/policies/kafka-topics
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: |
+          python -m pip install --no-cache-dir pyyaml==6.0.2
+          curl -sSL -o kyverno.tar.gz \
+            "https://github.com/kyverno/kyverno/releases/download/${KYVERNO_VERSION}/kyverno-cli_${KYVERNO_VERSION}_linux_x86_64.tar.gz"
+          echo "${KYVERNO_SHA256}  kyverno.tar.gz" | sha256sum -c -
+          sudo tar -xzf kyverno.tar.gz -C /usr/local/bin kyverno
+          kyverno version
+
+      # 1. Policies are code: prove they reject bad topics and accept good ones.
+      - name: Test policies
+        run: kyverno test "$POLICIES_DIR/tests"
+
+      # 2. Checks Kyverno cannot do: folder ownership, listing, uniqueness.
+      - name: Repository checks
+        run: python scripts/validate_topics.py "$TOPICS_DIR"
+
+      # 3. Render exactly what Argo CD will deploy.
+      - name: Render manifests
+        run: kubectl kustomize "$TOPICS_DIR" > rendered.yaml
+
+      # 4. Validate every rendered topic against the policies.
+      - name: Validate topics against policies
+        run: |
+          set -o pipefail
+          kyverno apply "$POLICIES_DIR"/*.yaml --resource rendered.yaml | tee kyverno.out
+
+          # Guard against a silent pass (no rules evaluated) or policy errors.
+          grep -q "^pass: [1-9]" kyverno.out || { echo "::error::No policy rules were evaluated"; exit 1; }
+          grep -q "error: 0," kyverno.out || { echo "::error::Policy evaluation errors"; exit 1; }

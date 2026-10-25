@@ -1,0 +1,17 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-telemetry-alerts
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: befe2005
+    data-classification: internal
+    tier: critical
+spec:
+  topicName: bus.telemetry.alerts
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000

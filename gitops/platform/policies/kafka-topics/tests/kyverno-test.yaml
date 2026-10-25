@@ -1,0 +1,117 @@
+# Run: kyverno test gitops/platform/policies/kafka-topics/tests
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: kafka-topic-policies
+policies:
+- ../01-metadata.yaml
+- ../02-naming.yaml
+- ../03-sizing.yaml
+- ../04-config.yaml
+resources:
+- resources.yaml
+results:
+- policy: kafka-topic-metadata
+  kind: KafkaTopic
+  resources:
+  - bus-gps-position
+  - bus-gps-strings
+  - bus-gps-rf3
+  - bustelemetry
+  - bus-telemetry
+  - bus-wrong-team
+  - bus-unknown-team
+  - bus-too-many-partitions
+  - bus-rf3-no-isr
+  - bus-retention-too-long
+  - bus-retention-missing
+  - bus-personal-retention
+  - bus-unsafe-config
+  result: pass
+  isValidatingPolicy: true
+- policy: kafka-topic-metadata
+  kind: KafkaTopic
+  resources:
+  - bus-missing-labels
+  - bus-bad-classification
+  - some-other-name
+  result: fail
+  isValidatingPolicy: true
+- policy: kafka-topic-naming
+  kind: KafkaTopic
+  resources:
+  - bus-gps-position
+  - bus-gps-strings
+  - bus-gps-rf3
+  - bus-missing-labels
+  - bus-bad-classification
+  - some-other-name
+  - bus-too-many-partitions
+  - bus-rf3-no-isr
+  - bus-retention-too-long
+  - bus-retention-missing
+  - bus-personal-retention
+  - bus-unsafe-config
+  result: pass
+  isValidatingPolicy: true
+- policy: kafka-topic-naming
+  kind: KafkaTopic
+  resources:
+  - bustelemetry
+  - bus-telemetry
+  - bus-wrong-team
+  - bus-unknown-team
+  result: fail
+  isValidatingPolicy: true
+- policy: kafka-topic-sizing
+  kind: KafkaTopic
+  resources:
+  - bus-gps-position
+  - bus-gps-strings
+  - bus-gps-rf3
+  - bus-missing-labels
+  - bus-bad-classification
+  - some-other-name
+  - bustelemetry
+  - bus-telemetry
+  - bus-wrong-team
+  - bus-unknown-team
+  - bus-retention-too-long
+  - bus-retention-missing
+  - bus-personal-retention
+  - bus-unsafe-config
+  result: pass
+  isValidatingPolicy: true
+- policy: kafka-topic-sizing
+  kind: KafkaTopic
+  resources:
+  - bus-too-many-partitions
+  - bus-rf3-no-isr
+  result: fail
+  isValidatingPolicy: true
+- policy: kafka-topic-config
+  kind: KafkaTopic
+  resources:
+  - bus-gps-position
+  - bus-gps-strings
+  - bus-gps-rf3
+  - bus-missing-labels
+  - bus-bad-classification
+  - some-other-name
+  - bustelemetry
+  - bus-telemetry
+  - bus-wrong-team
+  - bus-unknown-team
+  - bus-too-many-partitions
+  - bus-rf3-no-isr
+  result: pass
+  isValidatingPolicy: true
+- policy: kafka-topic-config
+  kind: KafkaTopic
+  resources:
+  - bus-retention-too-long
+  - bus-retention-missing
+  - bus-personal-retention
+  - bus-unsafe-config
+  result: fail
+  isValidatingPolicy: true

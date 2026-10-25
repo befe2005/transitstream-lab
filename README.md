@@ -10,8 +10,10 @@ Kafka-based bus telemetry streaming lab on Kubernetes, deployed with Argo CD.
 | `infrastructure/` | kind cluster config, Kafka StatefulSet, base nginx manifests |
 | `monitoring/` | Prometheus Helm values |
 | `gitops/argocd/` | Argo CD `Application` definitions |
-| `gitops/apps/` | Manifests synced by Argo CD (transitstream, kafka-topics, nginx-canary) |
-| `gitops/platform/` | Platform components (Strimzi topic operator) |
+| `gitops/apps/` | Manifests synced by Argo CD (transitstream, kafka-topics) |
+| `gitops/apps/kafka-topics/` | Self-service topics, one folder per team ([how to request a topic](gitops/apps/kafka-topics/README.md)) |
+| `gitops/platform/policies/` | Kyverno policies that every topic must pass |
+| `scripts/` | Repository checks used by CI |
 
 ## CI/CD (GitHub Actions)
 

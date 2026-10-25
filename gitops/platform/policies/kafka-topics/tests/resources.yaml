@@ -1,0 +1,290 @@
+# Test fixtures for the kafka-topic policies.
+# bus-gps-* topics are valid; every other topic breaks exactly one rule (see kyverno-test.yaml).
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-gps-position
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.gps.position
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-gps-strings
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.gps.strings
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: '86400000'
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-gps-rf3
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.gps.rf3
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 86400000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-missing-labels
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    data-classification: internal
+spec:
+  topicName: bus.missing.labels
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-bad-classification
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: secret
+    tier: standard
+spec:
+  topicName: bus.bad.classification
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: some-other-name
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.name.mismatch
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bustelemetry
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bustelemetry
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-telemetry
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.telemetry
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-wrong-team
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: ticketing
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.wrong.team
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-unknown-team
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: marketing
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.unknown.team
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-too-many-partitions
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.too-many.partitions
+  partitions: 50
+  replicas: 1
+  config:
+    retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-rf3-no-isr
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.rf3.no-isr
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-retention-too-long
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.retention.too-long
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 2592000000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-retention-missing
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.retention.missing
+  partitions: 3
+  replicas: 1
+  config: {}
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-personal-retention
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: personal
+    tier: standard
+spec:
+  topicName: bus.personal.retention
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 432000000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: bus-unsafe-config
+  namespace: transitstream
+  labels:
+    strimzi.io/cluster: transitstream
+    team: fleet-tracking
+    owner: someone
+    data-classification: internal
+    tier: standard
+spec:
+  topicName: bus.unsafe.config
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000
+    unclean.leader.election.enable: 'true'

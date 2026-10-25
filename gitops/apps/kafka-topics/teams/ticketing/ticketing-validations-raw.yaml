@@ -1,12 +1,16 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: bus-telemetry-alerts
+  name: ticketing-validations-raw
   namespace: transitstream
   labels:
     strimzi.io/cluster: transitstream
+    team: ticketing
+    owner: befe2005
+    data-classification: personal
+    tier: standard
 spec:
-  topicName: bus.telemetry.alerts
+  topicName: ticketing.validations.raw
   partitions: 3
   replicas: 1
   config:
