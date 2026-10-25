@@ -53,10 +53,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: python scripts/validate_topics.py "$TOPICS_DIR"
 
-      # 3. Make sure Argo CD can render the folder.
+      # 3. Make sure Argo CD can render every team folder.
       - name: Render manifests
         if: ${{ !cancelled() }}
-        run: kubectl kustomize "$TOPICS_DIR" > /dev/null
+        run: |
+          for dir in "$TOPICS_DIR"/teams/*/; do
+            kubectl kustomize "$dir" > /dev/null || { echo "::error::cannot render $dir"; exit 1; }
+          done
 
       # 4. Validate every topic file against the policies, including files that
       #    are not (yet) listed in a kustomization.

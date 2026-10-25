@@ -1,0 +1,21 @@
+# Guardrail for self-service topics: whatever lands in a team folder, Argo CD
+# will only ever deploy KafkaTopics from this repo into the transitstream
+# namespace. Anything else is refused at sync time.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: kafka-topics
+  namespace: argocd
+spec:
+  description: Self-service Kafka topics, one Application per team
+  sourceRepos:
+    - https://github.com/befe2005/transitstream-lab.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: transitstream
+  # No cluster-scoped resources (CRDs, ClusterRoles, Namespaces, ...).
+  clusterResourceWhitelist: []
+  # Only KafkaTopics inside the namespace.
+  namespaceResourceWhitelist:
+    - group: kafka.strimzi.io
+      kind: KafkaTopic

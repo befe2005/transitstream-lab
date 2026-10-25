@@ -1,0 +1,6 @@
+# Local lab users that stand in for SSO groups. Merge into argocd-cm with:
+#   kubectl -n argocd patch configmap argocd-cm --patch-file gitops/argocd/config/argocd-cm-accounts.yaml
+data:
+  accounts.ticketing-dev: login
+  accounts.fleet-dev: login
+  accounts.platform-eng: login
