@@ -14,4 +14,4 @@ spec:
   partitions: 3
   replicas: 1
   config:
-    retention.ms: 259200000
+    retention.ms: 3600000
